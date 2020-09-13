@@ -32,27 +32,31 @@ def halt():
 
 class Computer:
     operations = [
-        Operation(1, lambda *args: args[0] + args[1], 2, True),
-        Operation(2, lambda *args: args[0] * args[1], 2, True),
-        Operation(3, lambda *args: 1, 0, True),
-        Operation(4, lambda *args: print(args[0]), 1, False),
+        Operation(1, lambda *args: (None, args[0] + args[1]), 2, True),
+        Operation(2, lambda *args: (None, args[0] * args[1]), 2, True),
+        Operation(3, lambda *args: (None, 5), 0, True),
+        Operation(4, lambda *args: (None, print(args[0])), 1, False),
+        Operation(5, lambda *args: (args[1] if args[0] else None, None), 2, False),
+        Operation(6, lambda *args: (args[1] if not args[0] else None, None), 2, False),
+        Operation(7, lambda *args: (None, 1 if args[0] < args[1] else 0), 2, True),
+        Operation(8, lambda *args: (None, 1 if args[0] == args[1] else 0), 2, True),
         Operation(99, halt, 0, False)
     ]
 
     def __init__(self, program):
-        self._context = Context(list(program))
+        self._context = Context(program)
 
     def _execute(self, operation: Operation):
         parameter_modes = [self._context.get() // 10 ** n % 10 for n in range(2, 5)]
         parameters = [value if parameter_modes[n] else self._context[value] for (n, value) in
                       [(n, self._context.get_by_offset(n + 1)) for n in range(operation.number_of_parameters)]]
 
-        value_to_write = operation.execute(*parameters)
+        pc, value_to_write = operation.execute(*parameters)
         if operation.write_value:
             address_to_write = self._context.get_by_offset(1 + operation.number_of_parameters)
             self._context[address_to_write] = value_to_write
 
-        self._context.pc = self._context.pc + self._length_of_instruction(operation)
+        self._context.pc = pc or self._context.pc + self._length_of_instruction(operation)
 
     def _step(self):
         op_code = self._context.get() % 100
@@ -85,7 +89,7 @@ class Computer:
 def main():
     f = open('input')
     lines = f.readlines()
-    Computer([int(byte) for line in lines for byte in line.split(',')]).run()
+    Computer(list([int(byte) for line in lines for byte in line.split(',')])).run()
 
 
 if __name__ == '__main__':
